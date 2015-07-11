@@ -13,14 +13,5 @@ struct Input {
   bool keysReleased[KEYCOUNT];
 };
 
-struct TextureBuffer {
-  uint32* pixelData;
-  Vec2f textureDimensions;
-  int32 pitch;
-  
-  void setPixel(uint32 x, uint32 y, const Vec3f& color);
-};
-
-
 
 
