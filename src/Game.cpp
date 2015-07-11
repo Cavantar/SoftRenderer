@@ -1,5 +1,6 @@
-#include <jpb/Types.h>
 #include <iostream>
+#include <algorithm>
+#include <jpb/Types.h>
 #include "Game.h"
 
 
@@ -11,7 +12,7 @@ void TextureBuffer::setPixel(uint32 x, uint32 y, const Vec3f& color)
      y > 0 && y < textureDimensions.y)
   {
     pixelData[x + (uint32)textureDimensions.x * y] =
-      (uint32)(color.x) << 24 | (uint32)(color.z) << 16  | (uint32)(color.z) << 8;
+      (uint32)(color.x) << 24 | (uint32)(color.y) << 16  | (uint32)(color.z) << 8;
   }
 }
 
@@ -45,19 +46,17 @@ VerticesVector Cube::getVertices(real32 rotAngle) const
   vertices[6] = vertices[2] + Vec3f(0, sideLength, 0); 
   vertices[7] = vertices[3] + Vec3f(0, sideLength, 0);
 
-  real32 rotAngleRad = (rotAngle / 180.0f) * M_PI;
+  real32 radAngle = (rotAngle / 180.0f) * M_PI;
   
   for(int i = 0; i < 8; i++)
   {
     Vec3f& src = vertices[i];
-    Vec3f rotatedPosition;
+    src.rotateAroundY(radAngle);
+    src.rotateAroundX(radAngle);
     
-    // Rotation
-    rotatedPosition.x = src.x * cos(rotAngleRad) - src.z * sin(rotAngleRad);
-    rotatedPosition.z = src.x * sin(rotAngleRad) + src.z * cos(rotAngleRad);
-    rotatedPosition.y = src.y;
+    src.x += sideLength * 2.0f;
+    src.rotateAroundY(radAngle);
     
-    src = rotatedPosition;
     src += centerPosition;
   }
   
@@ -66,6 +65,7 @@ VerticesVector Cube::getVertices(real32 rotAngle) const
 
 void SoftwareRenderer::drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* texture) const 
 {
+  Vec2f deltaVector = p2 - p1;
   
   if(p1.x <= p2.x)
   {
@@ -79,10 +79,8 @@ void SoftwareRenderer::drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* 
     //==|==
     //  |
     
-    Vec2f deltaVector = p2 - p1;
-    
     // NOTE(jakub): fix this thing.
-    int32 dx = (int32)deltaVector.x != 0 ? deltaVector.x : 1;
+    int32 dx = deltaVector.x != 0 ? ceil(deltaVector.x) : 1;
     
     real32 a = deltaVector.x != 0 ? abs(deltaVector.y / deltaVector.x) : abs(deltaVector.y);
     real32 tempDelta = 0;
@@ -100,9 +98,9 @@ void SoftwareRenderer::drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* 
       {
 	y += sign(deltaVector.y);
 	tempDelta -= 1.0f;
-		
-	if(deltaVector.y < 0 && y > p2.y ||
-	   deltaVector.y > 0 && y < p2.y)
+	
+	if(deltaVector.y < 0 && y >= p2.y ||
+	   deltaVector.y > 0 && y <= p2.y)
 	{
 	  texture->setPixel(realX, y, color);
 	}
@@ -122,10 +120,8 @@ void SoftwareRenderer::drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* 
     //==|==
     //  |
     
-    Vec2f deltaVector = p2 - p1;
-    
     // NOTE(jakub): fix this thing.
-    int32 dx = abs((int32)deltaVector.x != 0 ? deltaVector.x : 1);
+    int32 dx = deltaVector.x != 0 ? abs(floor(deltaVector.x)) : 1;
     
     real32 a = deltaVector.x != 0 ? abs(deltaVector.y / deltaVector.x) : abs(deltaVector.y);
     real32 tempDelta = 0;
@@ -144,8 +140,8 @@ void SoftwareRenderer::drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* 
 	y += sign(deltaVector.y);
 	tempDelta -= 1.0f;
 	
-	if(deltaVector.y < 0 && y > p2.y ||
-	   deltaVector.y > 0 && y < p2.y)
+	if(deltaVector.y < 0 && y >= p2.y ||
+	   deltaVector.y > 0 && y <= p2.y)
 	{
 	  texture->setPixel(realX, y, color);
 	}
@@ -178,10 +174,8 @@ void SoftwareRenderer::drawCubeInPerspective(const Cube& cube, TextureBuffer* te
   vertices2d.resize(8);
   
   // 90 Degrees
-  float fov = M_PI / 2.0f;
-  float dfc = tan(fov / 2.0f);
-  
-  // std::cout << dfc << std::endl;
+  float fov = (M_PI / 2.0f) * 1.5f;
+  float dfc = 1.0f / tan(fov / 2.0f);
   
   real32 aspectRatio = texture->textureDimensions.x / texture->textureDimensions.y;
   
@@ -191,25 +185,34 @@ void SoftwareRenderer::drawCubeInPerspective(const Cube& cube, TextureBuffer* te
     uint32 pixelIndex = i;
     
     Vec3f& src = vertices[i];
-    
-    // std::cout << pixelIndex << ": " << src.x << " " << src.z << std::endl;
-    
     Vec2f& dst = vertices2d[pixelIndex];
     
     // Perspective calculation
-    dst.x = (src.x / src.z) * 1.0f;
-    dst.y = (src.y / src.z) * 1.0f;
+    dst.x = (src.x / src.z) * dfc;
+    dst.y = (src.y / src.z) * dfc;
 
     // Transforming Into ScreenSpace
     dst.x = (dst.x * texture->textureDimensions.x * 0.5) + texture->textureDimensions.x * 0.5;
     dst.y = ((dst.y * aspectRatio) * texture->textureDimensions.y * 0.5) + texture->textureDimensions.y * 0.5;
     
     texture->setPixel(dst.x, dst.y, Vec3f(255.0f, 255.0f, 255.0f));
-    
-    // std::cout << pixelIndex << ": " << dst.x << " " << dst.y << std::endl;
   }
 
   Vec3f cubeColor = cube.getColor();
+
+
+  Triangle triangles[12];
+  
+  triangles[0].vertices[0] = vertices2d[0];
+  triangles[0].vertices[1] = vertices2d[1];
+  triangles[0].vertices[2] = vertices2d[2];
+  
+  triangles[1].vertices[0] = vertices2d[2];
+  triangles[1].vertices[1] = vertices2d[3];
+  triangles[1].vertices[2] = vertices2d[0];
+  
+  drawTriangle(triangles[0], texture, Vec3f(128.0f, 128.0f, 0));
+  drawTriangle(triangles[1], texture, Vec3f(128.0f, 0, 0));
   
   // Drawing Lines
   for(int i = 0; i != 2; i++)
@@ -238,16 +241,112 @@ void SoftwareRenderer::drawCubeInPerspective(const Cube& cube, TextureBuffer* te
   }
 }
 
+void SoftwareRenderer::drawTriangle(Triangle& triangle, TextureBuffer* texture, Vec3f color)
+{
+  std::vector<ScanLine> scanLines = getScanLines(triangle);
+  for(auto it = scanLines.begin(); it != scanLines.end(); it++)
+  {
+    ScanLine& scanLine =  *it;
+    drawLine(Vec2f(scanLine.startX, scanLine.y), Vec2f(scanLine.endX, scanLine.y), color, texture);
+  }
+}
+
+ScanLineVector SoftwareRenderer::getScanLines(Triangle& triangle)
+{
+  ScanLineVector result;
+  
+  real32 minY = std::min(std::min(triangle.vertices[0].y,
+				  triangle.vertices[1].y),
+			 triangle.vertices[2].y);
+  
+  real32 maxY = std::max(std::max(triangle.vertices[0].y,
+				  triangle.vertices[1].y),
+			 triangle.vertices[2].y);
+  
+  real32 minX = std::min(std::min(triangle.vertices[0].x,
+				  triangle.vertices[1].x),
+			 triangle.vertices[2].x);
+  
+  real32 maxX = std::max(std::max(triangle.vertices[0].x,
+				  triangle.vertices[1].x),
+			 triangle.vertices[2].x);
+
+  Vec2f st1 = triangle.vertices[1];
+  Vec2f st2 = triangle.vertices[2];
+  Vec2f st3 = triangle.vertices[0];
+  
+  Vec2f l1 = st1 - triangle.vertices[0];
+  Vec2f l2 = st2 - triangle.vertices[1];
+  Vec2f l3 = st3 - triangle.vertices[2];
+  
+  for(int y = minY; y <= maxY; y++)
+  {
+    ScanLine scanLine;
+    scanLine.y = y;
+
+    real32 xValues[3];
+    xValues[0] = l1.getXFor(y, st1);
+    xValues[1] = l2.getXFor(y, st2);
+    xValues[2] = l3.getXFor(y, st3);
+
+    uint32 minScanX = -1;
+    uint32 maxScanX = -1;
+    
+    for(int i = 0; i < 3; i++)
+    {
+      if(xValues[i] >= minX && xValues[i] <= maxX)
+      {
+	if(minScanX == -1 && maxScanX == -1)
+	{
+	  minScanX = ceil(xValues[i]);
+	  maxScanX = floor(xValues[i]);
+	}
+	else
+	{
+	  minScanX = std::min(minScanX, (uint32)ceil(xValues[i]));
+	  maxScanX = std::max(maxScanX, (uint32)floor(xValues[i]));
+	}
+	// std::cout << i << " msx: "<< xValues[i] << std::endl;
+      }
+      
+    }
+
+    // std::cout << "y: " << y << " min: " << minScanX << " max: " << maxScanX << std::endl;
+    
+    scanLine.startX = minScanX;
+    scanLine.endX = maxScanX;
+    
+    result.push_back(scanLine);    
+  }
+  
+  // ScanLine scanLine = { minY, minX, (minX + 10) };
+  // result.push_back(scanLine);
+
+  return result;
+}
+
 void Game::start()
 {
+  // // Test
+
+  // Vec2f startV1(10.0f, 0);
+  // Vec2f tempV1(10.0f, 10.0f);
+
+  // // For what x y value will be 0
+  // // y = ax + b
+  // real32 a = tempV1.y / tempV1.x;
+
+  // real32 searchY = 1;
+  // real32 x = startV1.x + (searchY - startV1.y)/a ;
   
+  // std::cout << "y: " << searchY << " " << "x: " << x << std::endl;
 }
 
 void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
 {
   static const real32 scrollSpeed = 0.25f;
-  static Vec3f cubePosition(0, 0, 5.0f);
-  real32 cubeMoveSpeed = 0.01f;
+  static Vec3f cubePosition(0, 0, 2.0f);
+  real32 cubeMoveSpeed = 0.001f;
   
   if(input->keysDown[SDLK_w])
   {
@@ -279,13 +378,50 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   const real32 period = 0.5f;
   real32 tempTest = fmodf(localTime / 1000.0f, period) / period;
   SoftwareRenderer softwareRenderer;
+
+  static real32 rotAngle = 0;
+  static bool rotToggle = true;
+  if(input->keysPressed[SDLK_c]) rotToggle = !rotToggle;
+  if(rotToggle)
+  {
+    rotAngle += lastDeltaMs / 100.0f;
+  }
+
+  real32 triangleDistance = 25.0f; 
+  
+  Vec2f trianglePosition(100.0f, 100.0f);
+  
+  Vec2f position1 = Vec2f(-triangleDistance, triangleDistance);
+  Vec2f position2 = Vec2f(0, -triangleDistance);
+  Vec2f position3 = Vec2f(triangleDistance, triangleDistance);
+
+  position1.rotate(rotAngle);
+  position2.rotate(rotAngle);
+  position3.rotate(rotAngle);
+  
+  Triangle triangle = {trianglePosition + position1,
+		       trianglePosition + position2,
+		       trianglePosition + position3};
+  
+  softwareRenderer.drawTriangle(triangle, screenBuffer, Vec3f(0, 255.0f, 0));
+  
+  softwareRenderer.drawLine(triangle.vertices[0], triangle.vertices[1],
+			    Vec3f(255.0f, 0, 0), screenBuffer);  
+  
+  softwareRenderer.drawLine(triangle.vertices[1], triangle.vertices[2],
+			    Vec3f(255.0f, 0, 0), screenBuffer);  
+    
+  softwareRenderer.drawLine(triangle.vertices[2], triangle.vertices[0],
+			    Vec3f(255.0f, 0, 0), screenBuffer);  
+  
   
   Vec2f tempPosition(200, 200);
-  softwareRenderer.drawLine(tempPosition, tempPosition + Vec2f::directionVector(tempTest * 360.0f) * 200.0f,
-			    Vec3f(0, 255.0f, 0), screenBuffer);  
+  // softwareRenderer.drawLine(tempPosition, tempPosition + Vec2f::directionVector(rotAngle) * 200.0f,
+  // 			    Vec3f(0, 255.0f, 0), screenBuffer);  
   
-  static real32 rotAngle = 0;
-  rotAngle += lastDeltaMs / 100.0f;
+   
+  // softwareRenderer.drawLine(tempPosition, tempPosition + Vec2f(2.0f, 10.0f),
+  // Vec3f(0, 255.0f, 0), screenBuffer);    
   
   Cube cube(cubePosition, 0.2f);
   softwareRenderer.drawCubeInPerspective(cube, screenBuffer, rotAngle);

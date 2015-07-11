@@ -14,6 +14,18 @@ struct TextureBuffer {
 
 typedef std::vector<Vec3f> VerticesVector;
 
+struct Triangle {
+  Vec2f vertices[3];
+};
+
+struct ScanLine {
+  uint32 y;
+  
+  uint32 startX;
+  uint32 endX;
+};
+typedef std::vector<ScanLine> ScanLineVector;
+
 class Cube {
 public:
   
@@ -34,6 +46,11 @@ public:
   void drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* texture) const ;
   void drawSquare(Vec2f pos, float sideLength, Vec3f color, TextureBuffer* texture) const ;
   void drawCubeInPerspective(const Cube& cube, TextureBuffer* texture, real32 rotAngle = 0);
+  
+  void drawTriangle(Triangle& triangle, TextureBuffer* texture, Vec3f color);
+
+private:
+  ScanLineVector getScanLines(Triangle& triangle);
 };
 
 class Game
