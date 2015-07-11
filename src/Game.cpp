@@ -271,13 +271,19 @@ ScanLineVector SoftwareRenderer::getScanLines(Triangle& triangle)
 				  triangle.vertices[1].x),
 			 triangle.vertices[2].x);
 
-  Vec2f st1 = triangle.vertices[1];
-  Vec2f st2 = triangle.vertices[2];
-  Vec2f st3 = triangle.vertices[0];
-  
-  Vec2f l1 = st1 - triangle.vertices[0];
-  Vec2f l2 = st2 - triangle.vertices[1];
-  Vec2f l3 = st3 - triangle.vertices[2];
+  Vec2f st[3] =
+    {
+      triangle.vertices[1],
+      triangle.vertices[2],
+      triangle.vertices[0]
+    };
+
+  Vec2f ls[3] =
+    {
+      st[0] - triangle.vertices[0],
+      st[1] - triangle.vertices[1],
+      st[2] - triangle.vertices[2]
+    };
   
   for(int y = minY; y <= maxY; y++)
   {
@@ -285,10 +291,18 @@ ScanLineVector SoftwareRenderer::getScanLines(Triangle& triangle)
     scanLine.y = y;
 
     real32 xValues[3];
-    xValues[0] = l1.getXFor(y, st1);
-    xValues[1] = l2.getXFor(y, st2);
-    xValues[2] = l3.getXFor(y, st3);
 
+    for(int i = 0; i < 3; i++)
+    {
+      real32 xValue = ls[i].getXFor(y, st[i]);
+      
+      if((ls[i].y < 0 && (y < st[i].y || y > triangle.vertices[i].y)) ||
+	 (ls[i].y > 0 && (y > st[i].y || y < triangle.vertices[i].y)))
+      	xValue = maxX + 1;
+      
+      xValues[i] = xValue;
+    }
+    
     uint32 minScanX = -1;
     uint32 maxScanX = -1;
     
@@ -386,7 +400,12 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   {
     rotAngle += lastDeltaMs / 100.0f;
   }
-
+  
+  
+#if 0
+  
+  // Triangle Thing
+  //--------------------------------
   real32 triangleDistance = 25.0f; 
   
   Vec2f trianglePosition(100.0f, 100.0f);
@@ -394,7 +413,7 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   Vec2f position1 = Vec2f(-triangleDistance, triangleDistance);
   Vec2f position2 = Vec2f(0, -triangleDistance);
   Vec2f position3 = Vec2f(triangleDistance, triangleDistance);
-
+  
   position1.rotate(rotAngle);
   position2.rotate(rotAngle);
   position3.rotate(rotAngle);
@@ -406,14 +425,33 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   softwareRenderer.drawTriangle(triangle, screenBuffer, Vec3f(0, 255.0f, 0));
   
   softwareRenderer.drawLine(triangle.vertices[0], triangle.vertices[1],
-			    Vec3f(255.0f, 0, 0), screenBuffer);  
+  			    Vec3f(255.0f, 0, 0), screenBuffer);  
   
   softwareRenderer.drawLine(triangle.vertices[1], triangle.vertices[2],
-			    Vec3f(255.0f, 0, 0), screenBuffer);  
-    
-  softwareRenderer.drawLine(triangle.vertices[2], triangle.vertices[0],
-			    Vec3f(255.0f, 0, 0), screenBuffer);  
+  			    Vec3f(255.0f, 0, 0), screenBuffer);  
   
+  softwareRenderer.drawLine(triangle.vertices[2], triangle.vertices[0],
+  			    Vec3f(255.0f, 0, 0), screenBuffer);
+  
+  //--------------------------------
+#else 
+  
+  Triangle triangle = {Vec2f(100, 100),
+		       Vec2f(150, 50),
+		       Vec2f(100, 150)};
+  
+  softwareRenderer.drawTriangle(triangle, screenBuffer, Vec3f(0, 255.0f, 0));
+  
+  softwareRenderer.drawLine(triangle.vertices[0], triangle.vertices[1],
+  			    Vec3f(255.0f, 0, 0), screenBuffer);  
+  
+  softwareRenderer.drawLine(triangle.vertices[1], triangle.vertices[2],
+  			    Vec3f(255.0f, 0, 0), screenBuffer);  
+  
+  softwareRenderer.drawLine(triangle.vertices[2], triangle.vertices[0],
+  			    Vec3f(255.0f, 0, 0), screenBuffer);
+  
+#endif
   
   Vec2f tempPosition(200, 200);
   // softwareRenderer.drawLine(tempPosition, tempPosition + Vec2f::directionVector(rotAngle) * 200.0f,
