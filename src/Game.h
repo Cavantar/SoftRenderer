@@ -3,55 +3,7 @@
 #include <jpb/Vector.h>
 #include <vector>
 #include "main.h"
-
-struct TextureBuffer {
-  uint32* pixelData;
-  Vec2f textureDimensions;
-  int32 pitch;
-  
-  void setPixel(uint32 x, uint32 y, const Vec3f& color);
-};
-
-typedef std::vector<Vec3f> VerticesVector;
-
-struct Triangle {
-  Vec2f vertices[3];
-};
-
-struct ScanLine {
-  uint32 y;
-  
-  uint32 startX;
-  uint32 endX;
-};
-typedef std::vector<ScanLine> ScanLineVector;
-
-class Cube {
-public:
-  
-  Cube(Vec3f centerPosition = Vec3f(), float sideLength = 1.0f, Vec3f color = Vec3f(1.0f, 0, 0)) :
-    centerPosition(centerPosition), sideLength(sideLength), color(color) {}
-
-  VerticesVector getVertices(real32 rotAngle) const ;
-  Vec3f getColor() const { return color; }
-private:
-  Vec3f centerPosition;
-  float sideLength;
-  Vec3f color;
-};
-
-class SoftwareRenderer {
-public:
-  
-  void drawLine(Vec2f p1, Vec2f p2, Vec3f color, TextureBuffer* texture) const ;
-  void drawSquare(Vec2f pos, float sideLength, Vec3f color, TextureBuffer* texture) const ;
-  void drawCubeInPerspective(const Cube& cube, TextureBuffer* texture, real32 rotAngle = 0);
-  
-  void drawTriangle(Triangle& triangle, TextureBuffer* texture, Vec3f color);
-
-private:
-  ScanLineVector getScanLines(Triangle& triangle);
-};
+#include "SoftwareRenderer.h"
 
 class Game
 {

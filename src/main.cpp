@@ -10,6 +10,17 @@
 #include "main.h"
 #include "Game.h"
 
+void TextureBuffer::setPixel(uint32 x, uint32 y, const Vec3f& color)
+{
+  if(x > 0 && x < textureDimensions.x &&
+     y > 0 && y < textureDimensions.y)
+  {
+    pixelData[x + (uint32)textureDimensions.x * y] =
+      (uint32)(color.x) << 24 | (uint32)(color.y) << 16  | (uint32)(color.z) << 8;
+  }
+}
+
+
 int main( int argc, char* args[] )
 {
   // redirectIOToConsole();

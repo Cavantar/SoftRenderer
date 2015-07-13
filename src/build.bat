@@ -13,7 +13,10 @@ REM Zi(Generate Debug information), FC(Full Path To Source), O2(Fast Code)
 set CompilerOptions=-FC -Zi -EHsc -MD /I%IncludeDirectory% /IE:\Projekty\jpb /FeSoftRenderer.exe /nologo
 set LinkerOptions=/link /SUBSYSTEM:windows /LIBPATH:%LibraryDirectory%
 
-set FilesToCompile=..\src\main.cpp ..\src\Game.cpp
+set FilesToCompile=^
+..\src\main.cpp ^
+..\src\Game.cpp ^
+..\src\SoftwareRenderer.cpp 
 
 cl %CompilerOptions% %FilesToCompile% %Libraries% %LinkerOptions%
 
