@@ -29,7 +29,7 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   static real32 rotAngleX = 30.0f;
   static real32 rotAngleY = 30.0f;
   
-  static Vec3f cubePosition(0, 0.5f, 2.0f);
+  static Vec3f cubePosition(0, 0, 2.0f);
   real32 cubeMoveSpeed = 0.001f;
   
   if(input->keysDown[SDLK_w])
@@ -78,7 +78,7 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
 
   static real32 localTime = 0;
   localTime += lastDeltaMs;
-
+  
   const real32 period = 0.5f;
   real32 tempTest = fmodf(localTime / 1000.0f, period) / period;
   
@@ -92,7 +92,6 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   {
     rotAngle += lastDeltaMs / 100.0f;
   }
-  
   
   Triangle triangle = {Vec3f(100, 100),
 		       Vec3f(150, 50),
@@ -114,7 +113,8 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   
   Polygon2D polygon2 = { polygonVertices2 };
   softwareRenderer.drawPolygon(screenBuffer, polygon2, Vec3f(0, 0, 255.0f));
-  
+
+  cubePosition.z = 0.7f + sin(localTime * 0.0025f) * 0.3f;
   Cube cube(cubePosition, 0.2f);
   softwareRenderer.drawCubeInPerspective(screenBuffer, cube, rotAngleX, rotAngleY);
 }

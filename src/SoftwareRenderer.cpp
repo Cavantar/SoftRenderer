@@ -29,8 +29,41 @@ Polygon3D::clip(real32 nearZ) const
   uint32 verticyCount = vertices.size();
   for(auto i = 0; i < verticyCount; i++)
   {
-    const Vec3f& vector = vertices[i];
-    if(vector.z >= nearZ)result.vertices.push_back(vector);
+    const Vec3f& v1 = vertices[i];
+    const Vec3f& v2 = vertices[(i + 1)%verticyCount];
+
+    
+    // Ignore if both
+    if(v1.z >= nearZ && v2.z >= nearZ)
+    {
+      result.vertices.push_back(v1);
+    }
+    else if(v1.z >= nearZ && v2.z < nearZ)
+    {
+      result.vertices.push_back(v1);
+      Vec3f delta = v1 - v2;
+      real32 t = (v1.z - nearZ) / delta.z;
+      
+      // std::cout << "-----------------" << std::endl;
+      // std::cout << "v1.z: " << v1.z << std::endl;
+      // std::cout << "v2.z: " << v2.z << std::endl;
+      // std::cout << "dz: " << delta.z << std::endl;
+      // std::cout << "t: " << t << std::endl;
+      
+      Vec3f addedVector = v1 - (delta * t);
+      result.vertices.push_back(addedVector);
+    }
+    // v1.z < nearZ && v2 >= nearZ
+    else if(v1.z < nearZ && v2.z >= nearZ)
+    {
+      Vec3f delta = v2 - v1;
+      real32 t = (v2.z - nearZ) / delta.z;
+      
+      Vec3f addedVector = v2 - (delta * t);
+      result.vertices.push_back(addedVector);
+      
+      result.vertices.push_back(v2);
+    }
   }
   return result;
 }
