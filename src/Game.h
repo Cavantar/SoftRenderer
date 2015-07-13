@@ -8,12 +8,16 @@
 class Game
 {
 public:
+  
+  Game();
+  ~Game();
   void start();
   void update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs);
   void cleanUp();
   
 private:
   Vec2f offset;
+  TextureBuffer testTexture;
   void fillScreen(TextureBuffer* screenBuffer);
 };
 

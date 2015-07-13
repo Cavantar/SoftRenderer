@@ -6,7 +6,6 @@
 
 #define sign(a) (a > 0 ? 1 : -1)
 
-
 Polygon2D
 Polygon3D::toPolygon2D() const
 {
@@ -68,7 +67,7 @@ Polygon3D::clip(real32 nearZ) const
   return result;
 }
 
-  Range2d
+Range2d
 MathHelper::getRange2d(const VerticesVector2D& vertices)
 {
   Range2d result = {};
@@ -90,6 +89,21 @@ MathHelper::getRange2d(const VerticesVector2D& vertices)
   }
   
   return result;
+}
+
+void
+TextureHelper::blitTexture(TextureBuffer* dst, TextureBuffer* src, const Vec2i& position)
+{
+  Vec2i srcDimensions = src->dimensions;
+  for(int y = 0; y < srcDimensions.y; y++)
+  {
+    for(int x = 0; x < srcDimensions.x; x++)
+    {
+      Vec3f srcColor = src->getPixel(x, y);
+      dst->setPixel(x + position.x, y + position.y, srcColor);
+      // srcColor.showData();
+    }
+  }
 }
 
 Vec3f
@@ -325,7 +339,7 @@ void
 SoftwareRenderer::drawTriangles3D(TextureBuffer* texture, const VerticesVector3D& vertices,
 				  const IndTriangleVector& triangleIndices) const 
 {
-  VerticesVector3D castedVertices = castVertices(vertices, texture->textureDimensions);
+  VerticesVector3D castedVertices = castVertices(vertices, texture->dimensions);
   TriangleVector triangleVector = MeshHelper::getTrianglesFromIndices(triangleIndices, castedVertices);
   
   TriangleVector trianglesToProcess;
@@ -456,14 +470,14 @@ SoftwareRenderer::getScanLines(const Polygon2D& polygon) const
 }
 
 VerticesVector3D
-SoftwareRenderer::castVertices(const VerticesVector3D& vertices, const Vec2f& screenDimensions) const
+SoftwareRenderer::castVertices(const VerticesVector3D& vertices, const Vec2i& screenDimensions) const
 {
   VerticesVector3D castedVertices;
   castedVertices.resize(vertices.size());
   
   // 90 Degrees
   float dfc = 1.0f / tan(fov / 2.0f);
-  real32 aspectRatio = screenDimensions.x / screenDimensions.y;
+  real32 aspectRatio = (real32)screenDimensions.x / screenDimensions.y;
   
   // Transforming Coordinates
   for(int i = 0; i != 8; i++)

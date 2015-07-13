@@ -10,16 +10,25 @@
 #include "main.h"
 #include "Game.h"
 
-void TextureBuffer::setPixel(uint32 x, uint32 y, const Vec3f& color)
+void
+TextureBuffer::setPixel(uint32 x, uint32 y, const Vec3f& color)
 {
-  if(x > 0 && x < textureDimensions.x &&
-     y > 0 && y < textureDimensions.y)
+  if(x > 0 && x < dimensions.x &&
+     y > 0 && y < dimensions.y)
   {
-    pixelData[x + (uint32)textureDimensions.x * y] =
+    pixelData[x + (uint32)dimensions.x * y] =
       (uint32)(color.x) << 24 | (uint32)(color.y) << 16  | (uint32)(color.z) << 8;
   }
 }
 
+Vec3f
+TextureBuffer::getPixel(uint32 x, uint32 y)
+{
+  uint32 color = pixelData[x + (uint32)dimensions.x * y];
+  Vec3f result(color >> 24,  color >> 16, color >> 8);
+  
+  return result;
+}
 
 int main( int argc, char* args[] )
 {
@@ -65,12 +74,12 @@ int main( int argc, char* args[] )
       float lastDeltaMs = 2;
       
       TextureBuffer screenBuffer = {};
-      screenBuffer.textureDimensions = Vec2f(1280, 720);
+      screenBuffer.dimensions = Vec2i(1280, 720);
       
       SDL_Texture* screenTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
 						     SDL_TEXTUREACCESS_STREAMING,
-						     screenBuffer.textureDimensions.x,
-						     screenBuffer.textureDimensions.y);
+						     screenBuffer.dimensions.x,
+						     screenBuffer.dimensions.y);
       
       game.start();
       

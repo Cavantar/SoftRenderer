@@ -5,6 +5,30 @@
 
 #define sign(a) (a > 0 ? 1 : -1)
 
+Game::Game()
+{
+  // Generating Texture
+  Vec2i textureDimensions(100, 100);
+  
+  testTexture.dimensions = textureDimensions;
+  testTexture.pixelData = new uint32[textureDimensions.x * textureDimensions.y];
+  
+  for(int y = 0; y < textureDimensions.y; y++)
+  {
+    for(int x = 0; x < textureDimensions.x; x++)
+    {
+      Vec3f color(x % 255, y % 255, 0);
+      testTexture.setPixel(x, y, color);
+      //  color.showData();
+    }
+  }
+};
+
+Game::~Game()
+{
+  delete[] testTexture.pixelData;
+}
+
 void Game::start()
 {
   // // Test
@@ -117,6 +141,8 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   cubePosition.z = 0.7f + sin(localTime * 0.0025f) * 0.3f;
   Cube cube(cubePosition, 0.2f);
   softwareRenderer.drawCubeInPerspective(screenBuffer, cube, rotAngleX, rotAngleY);
+  
+  TextureHelper::blitTexture(screenBuffer, &testTexture, Vec2i(200, 200));
 }
 
 void Game::fillScreen(TextureBuffer* screenBuffer)
@@ -124,14 +150,14 @@ void Game::fillScreen(TextureBuffer* screenBuffer)
   uint8* pixelData = (uint8*)screenBuffer->pixelData;
   bool toggle = false;
   
-  for(int y = 0; y < screenBuffer->textureDimensions.y; ++y)
+  for(int y = 0; y < screenBuffer->dimensions.y; ++y)
   {
     uint8* row = pixelData + screenBuffer->pitch * y;
-    for(int x = 0; x < screenBuffer->textureDimensions.x; ++x)
+    for(int x = 0; x < screenBuffer->dimensions.x; ++x)
     {
       uint32* pixelValue = (uint32*)(row + x * 4);
       
-      uint32 redValue = ((y + (uint32)offset.y) * (uint32)screenBuffer->textureDimensions.x) % 255; 
+      uint32 redValue = ((y + (uint32)offset.y) * (uint32)screenBuffer->dimensions.x) % 255; 
       uint32 greenValue = (x + (uint32)offset.x) % 255; 
       uint32 blueValue = 0; 
       uint8 alphaValue = 0;       

@@ -4,10 +4,11 @@
 
 struct TextureBuffer {
   uint32* pixelData;
-  Vec2f textureDimensions;
+  Vec2i dimensions;
   int32 pitch;
   
   void setPixel(uint32 x, uint32 y, const Vec3f& color);
+  Vec3f getPixel(uint32 x, uint32 y);
 };
 
 const int32 KEYCOUNT = 256;

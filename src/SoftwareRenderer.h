@@ -65,6 +65,11 @@ public:
   static Range2d getRange2d(const VerticesVector2D& vertices);
 };
 
+class TextureHelper {
+public:
+  static void blitTexture(TextureBuffer* dst, TextureBuffer* src, const Vec2i& position);
+};
+
 class MeshHelper {
 public:
   
@@ -97,7 +102,6 @@ private:
 
 class SoftwareRenderer {
 public:
-  
   SoftwareRenderer(real32 fov) : fov(fov) {};
   
   void drawLine(TextureBuffer* texture, Vec2f p1, Vec2f p2, Vec3f color) const ;
@@ -109,13 +113,12 @@ public:
   
   void drawTriangle(TextureBuffer* texture, const Triangle& triangle, Vec3f color) const ;
   void drawPolygon(TextureBuffer* texture, Polygon2D& triangle, Vec3f color, bool outline = true) const;
-  
 private:
   
   real32 fov;
   ScanLineVector getScanLines(const Polygon2D& polygon) const;
   
   // Perspective Transformation without clipping
-  VerticesVector3D castVertices(const VerticesVector3D& vertices, const Vec2f& screenDimensions) const;
+  VerticesVector3D castVertices(const VerticesVector3D& vertices, const Vec2i& screenDimensions) const;
   PolygonVector3D clip(const PolygonVector3D& polygons, real32 nearZ) const;
 };
