@@ -7,6 +7,26 @@
 #define sign(a) (a > 0 ? 1 : -1)
 
 Polygon2D
+Polygon2D::toScreenSpace(const Vec2i& screenDimensions) const 
+{
+  real32 aspectRatio = (real32)screenDimensions.x / screenDimensions.y;
+
+  uint32 vertexCount = vertices.size();
+  Polygon2D result;
+  result.vertices.resize(vertexCount);
+  for(uint32 i = 0; i != vertexCount; i++)
+  {
+    const Vec2f& src = vertices[i];
+    Vec2f& dst = result.vertices[i];
+    
+    // // Transforming Into ScreenSpace
+    dst.x = (src.x * screenDimensions.x * 0.5) + screenDimensions.x * 0.5;
+    dst.y = ((-src.y * aspectRatio) * screenDimensions.y * 0.5) + screenDimensions.y * 0.5;
+  }
+  return result;
+}
+
+Polygon2D
 Polygon3D::toPolygon2D() const
 {
   Polygon2D result;
@@ -101,7 +121,6 @@ TextureHelper::blitTexture(TextureBuffer* dst, TextureBuffer* src, const Vec2i& 
     {
       Vec3f srcColor = src->getPixel(x, y);
       dst->setPixel(x + position.x, y + position.y, srcColor);
-      // srcColor.showData();
     }
   }
 }
@@ -109,7 +128,7 @@ TextureHelper::blitTexture(TextureBuffer* dst, TextureBuffer* src, const Vec2i& 
 Vec3f
 MeshHelper::getCrossProduct(const IndexedTriangle& indexedTriangle, const VerticesVector3D& vertices)
 {
-  Vec3f v1 = vertices[indexedTriangle.t1] - vertices[indexedTriangle.t0];
+  Vec3f v1 = vertices[indexedTriangle.t0] - vertices[indexedTriangle.t1];
   Vec3f v2 = vertices[indexedTriangle.t2] - vertices[indexedTriangle.t1];
 
   Vec3f result = Vec3f::cross(v1, v2);
@@ -126,10 +145,17 @@ MeshHelper::getTrianglesFromIndices(const IndTriangleVector& triangleIndexes, co
   for(int i = 0; i < triangleCount; i++)
   {
     const IndexedTriangle& indexedTriangle = triangleIndexes[i];
-    
+#if 1
     triangles[i].vertices[0] = vertices[indexedTriangle.t0];
     triangles[i].vertices[1] = vertices[indexedTriangle.t1];
     triangles[i].vertices[2] = vertices[indexedTriangle.t2];
+#else    
+    Triangle triangle;
+    triangle.vertices[0] = vertices[indexedTriangle.t0];
+    triangle.vertices[1] = vertices[indexedTriangle.t1];
+    triangle.vertices[2] = vertices[indexedTriangle.t2];
+    triangles.push_back(triangle);
+#endif
   }
   
   return triangles;
@@ -332,6 +358,7 @@ SoftwareRenderer::drawCubeInPerspective(TextureBuffer* texture, const Cube& cube
 {
   VerticesVector3D vertices = cube.getVertices(rotAngleX, rotAngleY);
   IndTriangleVector triangleIndices = Cube::getTriangleIndexes();
+  
   drawTriangles3D(texture, vertices, triangleIndices);
 }
 
@@ -339,9 +366,9 @@ void
 SoftwareRenderer::drawTriangles3D(TextureBuffer* texture, const VerticesVector3D& vertices,
 				  const IndTriangleVector& triangleIndices) const 
 {
-  VerticesVector3D castedVertices = castVertices(vertices, texture->dimensions);
+  VerticesVector3D castedVertices = castVertices(vertices);
   TriangleVector triangleVector = MeshHelper::getTrianglesFromIndices(triangleIndices, castedVertices);
-  
+
   TriangleVector trianglesToProcess;
   uint32 triangleCount = triangleVector.size();
   
@@ -351,21 +378,25 @@ SoftwareRenderer::drawTriangles3D(TextureBuffer* texture, const VerticesVector3D
     Vec3f lookVector = Vec3f(0, 0, 1.0f);
     
     real32 dotProduct = Vec3f::dotProduct(lookVector, triangleNormal);
-    if(dotProduct > 0) trianglesToProcess.push_back(triangleVector[i]);
+    if(dotProduct >= 0)
+      trianglesToProcess.push_back(triangleVector[i]);
   }
   
   PolygonVector3D polygons = MeshHelper::trianglesToPolys(trianglesToProcess);
-  PolygonVector3D polygonsToDraw = clip(polygons, 0.5f);
+  
+  real32 clipDistance = 0.5f;
+  PolygonVector3D polygonsToDraw = clip(polygons, clipDistance);
   
   bool colorToggle = false;
   for(auto it = polygonsToDraw.begin(); it != polygonsToDraw.end(); it++)
   {
     const Polygon3D& polygon3D = *it;
     Polygon2D polygon2D = polygon3D.toPolygon2D();
+    Polygon2D screenSpacePolygon = polygon2D.toScreenSpace(texture->dimensions);
+    // screenSpacePolygon.vertices[0].showData();
     
-    drawPolygon(texture, polygon2D, Vec3f(128.0f, colorToggle ? 128.0f : 0, 0));
+    drawPolygon(texture, screenSpacePolygon, Vec3f(128.0f, colorToggle ? 128.0f : 0, 0));
     colorToggle = !colorToggle;
-    // return ;
   }
   
 }
@@ -470,17 +501,18 @@ SoftwareRenderer::getScanLines(const Polygon2D& polygon) const
 }
 
 VerticesVector3D
-SoftwareRenderer::castVertices(const VerticesVector3D& vertices, const Vec2i& screenDimensions) const
+SoftwareRenderer::castVertices(const VerticesVector3D& vertices) const
 {
   VerticesVector3D castedVertices;
-  castedVertices.resize(vertices.size());
+  
+  uint32 vertexCount = vertices.size();
+  castedVertices.resize(vertexCount);
   
   // 90 Degrees
   float dfc = 1.0f / tan(fov / 2.0f);
-  real32 aspectRatio = (real32)screenDimensions.x / screenDimensions.y;
   
   // Transforming Coordinates
-  for(int i = 0; i != 8; i++)
+  for(int i = 0; i < vertexCount; i++)
   {
     uint32 pixelIndex = i;
     
@@ -490,16 +522,10 @@ SoftwareRenderer::castVertices(const VerticesVector3D& vertices, const Vec2i& sc
     // Perspective calculation
     dst.x = (src.x / src.z) * dfc;
     dst.y = (src.y / src.z) * dfc;
-    
-    // Transforming Into ScreenSpace
-    dst.x = (dst.x * screenDimensions.x * 0.5) + screenDimensions.x * 0.5;
-    dst.y = ((-dst.y * aspectRatio) * screenDimensions.y * 0.5) + screenDimensions.y * 0.5;
 
     castedVertices[i].x = dst.x;
     castedVertices[i].y = dst.y;
     castedVertices[i].z = src.z;
-    
-    // texture->setPixel(dst.x, dst.y, Vec3f(255.0f, 255.0f, 255.0f));
   }
   
   return castedVertices;

@@ -12,6 +12,7 @@ struct Triangle {
 
 struct Polygon2D {
   VerticesVector2D vertices;
+  Polygon2D toScreenSpace(const Vec2i& screenDimensions) const;
 };
 typedef std::vector<Vec3f> VerticesVector3D;
 
@@ -112,13 +113,13 @@ public:
 		       const IndTriangleVector& triangleIndices) const;
   
   void drawTriangle(TextureBuffer* texture, const Triangle& triangle, Vec3f color) const ;
-  void drawPolygon(TextureBuffer* texture, Polygon2D& triangle, Vec3f color, bool outline = true) const;
+  void drawPolygon(TextureBuffer* texture, Polygon2D& polygon, Vec3f color, bool outline = true) const;
 private:
   
   real32 fov;
   ScanLineVector getScanLines(const Polygon2D& polygon) const;
   
   // Perspective Transformation without clipping
-  VerticesVector3D castVertices(const VerticesVector3D& vertices, const Vec2i& screenDimensions) const;
+  VerticesVector3D castVertices(const VerticesVector3D& vertices) const;
   PolygonVector3D clip(const PolygonVector3D& polygons, real32 nearZ) const;
 };

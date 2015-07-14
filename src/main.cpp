@@ -13,8 +13,8 @@
 void
 TextureBuffer::setPixel(uint32 x, uint32 y, const Vec3f& color)
 {
-  if(x > 0 && x < dimensions.x &&
-     y > 0 && y < dimensions.y)
+  if(x >= 0 && x < dimensions.x &&
+     y >= 0 && y < dimensions.y)
   {
     pixelData[x + (uint32)dimensions.x * y] =
       (uint32)(color.x) << 24 | (uint32)(color.y) << 16  | (uint32)(color.z) << 8;

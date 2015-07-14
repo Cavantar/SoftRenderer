@@ -137,10 +137,24 @@ void Game::update(TextureBuffer* screenBuffer, Input* input, float lastDeltaMs)
   
   Polygon2D polygon2 = { polygonVertices2 };
   softwareRenderer.drawPolygon(screenBuffer, polygon2, Vec3f(0, 0, 255.0f));
-
+  
+  real32 testScale = 4.0f;
+  real32 testDistance = 2.0f;
+  VerticesVector3D vertices =
+    {
+      Vec3f(-0.1 * testScale, 0.1 * testScale, testDistance),
+      Vec3f(0.1 * testScale, 0.1 * testScale, testDistance),
+      Vec3f(-0.1 * testScale, -0.1 * testScale, testDistance)
+    };
+  
+  IndTriangleVector triangleIndices = {{0, 1, 2}};
+  softwareRenderer.drawTriangles3D(screenBuffer, vertices, triangleIndices);
+  
+  // Cube Rendering
+  // -----------------------
   cubePosition.z = 0.7f + sin(localTime * 0.0025f) * 0.3f;
   Cube cube(cubePosition, 0.2f);
-  softwareRenderer.drawCubeInPerspective(screenBuffer, cube, rotAngleX, rotAngleY);
+  // softwareRenderer.drawCubeInPerspective(screenBuffer, cube, rotAngleX, rotAngleY);
   
   TextureHelper::blitTexture(screenBuffer, &testTexture, Vec2i(200, 200));
 }
