@@ -8,7 +8,8 @@ struct TextureBuffer {
   int32 pitch;
   
   void setPixel(uint32 x, uint32 y, const Vec3f& color);
-  Vec3f getPixel(uint32 x, uint32 y);
+  Vec3f getPixel(uint32 x, uint32 y) const ;
+  Vec3f getPixelUV(const Vec2f& uv) const;
 };
 
 const int32 KEYCOUNT = 256;

@@ -22,12 +22,21 @@ TextureBuffer::setPixel(uint32 x, uint32 y, const Vec3f& color)
 }
 
 Vec3f
-TextureBuffer::getPixel(uint32 x, uint32 y)
+TextureBuffer::getPixel(uint32 x, uint32 y) const
 {
   uint32 color = pixelData[x + (uint32)dimensions.x * y];
   Vec3f result(color >> 24,  color >> 16, color >> 8);
   
   return result;
+}
+
+Vec3f
+TextureBuffer::getPixelUV(const Vec2f& uv) const
+{
+  uint32 x = max(fmodf(uv.x, 1.0f), 0) * (real32)dimensions.x;
+  uint32 y = max(fmodf(uv.y, 1.0f), 0) * (real32)dimensions.y;
+  
+  return getPixel(x, y);
 }
 
 int main( int argc, char* args[] )
