@@ -18,7 +18,7 @@ Game::Game()
     for(int x = 0; x < textureDimensions.x; x++)
     {
       Vec3f color(x % 255, y % 255, 0);
-      if(x == y || textureDimensions.x - x == y ) color = Vec3f(0, 0, 255);
+      if(x == y || (textureDimensions.x - x - 1) == y ) color = Vec3f(0, 0, 255);
       testTexture.setPixel(x, y, color);
       //  color.showData();
     }
@@ -55,9 +55,9 @@ void Game::update(TextureBuffer* screenBuffer, const Input* input, float lastDel
   static real32 localTime = 0;
   localTime += lastDeltaMs;
   
-  SoftwareRenderer softwareRenderer((M_PI / 2.0f) * 1.0f);
+  SoftRenderer softwareRenderer((M_PI / 2.0f) * 1.0f);
 
-  if(1)
+  if(0)
   {
     {
       Polygon2D polygon = { { Vec2f(100, 100), Vec2f(150, 50), Vec2f(100, 150) } };
@@ -117,26 +117,32 @@ void Game::update(TextureBuffer* screenBuffer, const Input* input, float lastDel
   {
     real32 testScale = 2.0f;
     real32 testDistance = sin(localTime * 0.005f) * 0.2f + 1.0f;
+    static real32 rotationValue = 0;
+    
+    if(!input->keysDown[SDLK_a])
+      rotationValue = sin(localTime * 0.002f) * 3.0f;
     
     Vec3f v1 = Vec3f(-0.1 * testScale, 0.1 * testScale, 0);
     Vec3f v2 = Vec3f(0.1 * testScale, 0.1 * testScale, 0);
-    v2.rotateAroundY(localTime * 0.0025f);
+    v2.rotateAroundY(rotationValue);
     
     Vec3f v3 = Vec3f(-0.1 * testScale, -0.1 * testScale, 0);
     Vec3f v4 = Vec3f(0.1 * testScale, -0.1 * testScale, 0);
-    v4.rotateAroundY(localTime * 0.0025f);
+    v4.rotateAroundY(rotationValue);
     
-    Vec3f tempPosition(-0.25f, 0, testDistance);
+    Vec3f tempPosition(-0.25f, 0, 0.7f);
+    
+    real32 textureScale = 4.0f;
+    Vec2f textOffset(0, 0);
     
     MappedVertices mappedVertices = {
-      { v1 + tempPosition, Vec2f(0, 0), Vec3f() },
-      { v2 + tempPosition, Vec2f(1.0f, 0), Vec3f() },
-      { v3 + tempPosition, Vec2f(0, 1.0f), Vec3f() },
-      { v4 + tempPosition, Vec2f(1.0f, 1.0f), Vec3f() }
+      { v1 + tempPosition, Vec2f(textOffset.x, textOffset.y), Vec3f() },
+      { v2 + tempPosition, Vec2f(textOffset.x + 1.0f * textureScale, textOffset.y), Vec3f() },
+      { v3 + tempPosition, Vec2f(textOffset.x + 0, 1.0f * textureScale + textOffset.y), Vec3f() },
+      { v4 + tempPosition, Vec2f(textOffset.x + 1.0f * textureScale, 1.0f * textureScale + textOffset.y), Vec3f() }
     };
     
     TriangleIndices triangleIndices = {{0, 1, 2}, {1, 3, 2}};
-    
     softwareRenderer.drawMappedTriangles3D(screenBuffer, mappedVertices, triangleIndices, &testTexture);  
   }
 }

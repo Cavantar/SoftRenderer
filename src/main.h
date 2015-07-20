@@ -2,16 +2,6 @@
 #include <jpb/Types.h>
 #include <jpb/Vector.h>
 
-struct TextureBuffer {
-  uint32* pixelData;
-  Vec2i dimensions;
-  int32 pitch;
-  
-  void setPixel(uint32 x, uint32 y, const Vec3f& color);
-  Vec3f getPixel(uint32 x, uint32 y) const ;
-  Vec3f getPixelUV(const Vec2f& uv) const;
-};
-
 const int32 KEYCOUNT = 256;
 
 const int32 SCREEN_WIDTH = 1280;

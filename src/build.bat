@@ -10,7 +10,7 @@ set Libraries=SDL2.lib SDL2main.lib
 
 REM Zi(Generate Debug information), FC(Full Path To Source), O2(Fast Code)
 
-set CompilerOptions=-FC -Zi -EHsc -MD /I%IncludeDirectory% /IE:\Projekty\jpb /FeSoftRenderer.exe /nologo
+set CompilerOptions=-FC -O2x -Zi -EHsc -MD /I%IncludeDirectory% /IE:\Projekty\jpb /FeSoftRenderer.exe /nologo
 set LinkerOptions=/link /SUBSYSTEM:windows /LIBPATH:%LibraryDirectory%
 
 REM /HEAP:1000000000
@@ -18,7 +18,8 @@ REM /HEAP:1000000000
 set FilesToCompile=^
 ..\src\main.cpp ^
 ..\src\Game.cpp ^
-..\src\SoftwareRenderer.cpp 
+..\src\SoftRenderer.cpp ^
+..\src\RenderPrimitives.cpp 
 
 cl %CompilerOptions% %FilesToCompile% %Libraries% %LinkerOptions%
 

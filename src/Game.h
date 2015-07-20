@@ -3,10 +3,9 @@
 #include <jpb/Vector.h>
 #include <vector>
 #include "main.h"
-#include "SoftwareRenderer.h"
+#include "SoftRenderer.h"
 
-class Game
-{
+class Game {
 public:
   
   Game();
@@ -14,7 +13,6 @@ public:
   void start();
   void update(TextureBuffer* screenBuffer, const Input* input, float lastDeltaMs);
   void cleanUp();
-  
 private:
   
   Vec2f offset;
