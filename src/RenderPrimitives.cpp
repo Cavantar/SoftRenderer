@@ -284,11 +284,11 @@ MathHelper::getRange2d(const MappedVertices& vertices)
 }
 
 Vec3f
-MeshHelper::getCrossProduct(const IndexedTriangle& indexedTriangle, const Vertices& vertices)
+MeshHelper::getCrossProduct(const Vertices& vertices, const IndexedTriangle& indexedTriangle)
 {
-  Vec3f v1 = vertices[indexedTriangle.indexes[0]] - vertices[indexedTriangle.indexes[1]];
-  Vec3f v2 = vertices[indexedTriangle.indexes[2]] - vertices[indexedTriangle.indexes[1]];
-
+  Vec3f v1 = vertices[indexedTriangle.indexes[1]] - vertices[indexedTriangle.indexes[0]];
+  Vec3f v2 = vertices[indexedTriangle.indexes[2]] - vertices[indexedTriangle.indexes[0]];
+  
   Vec3f result = Vec3f::cross(v1, v2);
   return result;
 }
@@ -296,8 +296,8 @@ MeshHelper::getCrossProduct(const IndexedTriangle& indexedTriangle, const Vertic
 Vec3f
 MeshHelper::getCrossProduct(const MappedTriangle& triangle)
 {
-  Vec3f v1 = triangle.vertices[0].position - triangle.vertices[1].position;
-  Vec3f v2 = triangle.vertices[2].position - triangle.vertices[1].position;
+  Vec3f v1 = triangle.vertices[1].position - triangle.vertices[0].position;
+  Vec3f v2 = triangle.vertices[2].position - triangle.vertices[0].position;
   
   Vec3f result = Vec3f::cross(v1, v2);
   return result;
@@ -380,24 +380,35 @@ MeshHelper::trianglesToPolys(const MappedTriangles& triangles)
 void
 MeshHelper::rotateVertices(Vertices& vertices, const Vec3f& angles)
 {
+  Vec3f radAngles = angles.degToRad();
+  
   for(auto it = vertices.begin(); it != vertices.end(); it++)
   {
     Vec3f& vertex = *it;
-    vertex.rotateAroundY(angles.y);
-    vertex.rotateAroundX(angles.x);
-    vertex.rotateAroundZ(angles.z);
+    vertex.rotateAroundY(radAngles.y);
+    vertex.rotateAroundX(radAngles.x);
+    vertex.rotateAroundZ(radAngles.z);
   }
 }
 
 void
 MeshHelper::rotateVertices(MappedVertices& vertices, const Vec3f& angles)
 {
+  Vec3f radAngles = angles.degToRad();
+  
   for(auto it = vertices.begin(); it != vertices.end(); it++)
   {
     Vec3f& vertex = it->position;
-    vertex.rotateAroundY(angles.y);
-    vertex.rotateAroundX(angles.x);
-    vertex.rotateAroundZ(angles.z);
+    Vec3f& normal = it->normal;
+    
+    vertex.rotateAroundY(radAngles.y);
+    normal.rotateAroundY(radAngles.y);
+    
+    vertex.rotateAroundX(radAngles.x);
+    normal.rotateAroundX(radAngles.x);
+    
+    vertex.rotateAroundZ(radAngles.z);
+    normal.rotateAroundZ(radAngles.z);
   }
 }
 
@@ -421,4 +432,51 @@ MeshHelper::translateVertices(MappedVertices& vertices, const Vec3f& translation
   }
 }
 
+Vec3f
+MeshHelper::getFaceNormal(const MappedVertices& vertices, const IndexedTriangle& indexedTriangle)
+{
+  Vec3f result;
+  
+  Vec3f v1 = vertices[indexedTriangle.indexes[1]].position - vertices[indexedTriangle.indexes[0]].position;
+  Vec3f v2 = vertices[indexedTriangle.indexes[2]].position - vertices[indexedTriangle.indexes[0]].position;
+  
+  result = Vec3f::cross(v1, v2);
+  result = Vec3f::normalize(result);
+  
+  return result;
+}
 
+void
+MeshHelper::calculateNormals(MappedVertices& vertices, const TriangleIndices& triangleIndices)
+{
+  
+  uint32 triangleCount = triangleIndices.size();
+  Vertices normals(triangleCount);
+
+  // Calculating Face Normals
+  for(uint32 i = 0; i != triangleCount; i++)
+  {
+    const IndexedTriangle& indexedTriangle = triangleIndices[i];
+    normals[i] = getFaceNormal(vertices, indexedTriangle);
+  }
+
+  // Checking What Face Normals belongs to what vertex 
+  uint32 vertexCount = vertices.size();
+  for(int i = 0; i != vertexCount; i++)
+  {
+    MappedVertex& vertex = vertices[i];
+    Vec3f directionSum;
+    
+    for(int j = 0; j < triangleCount; j++)
+    {
+      if(triangleIndices[j].indexes[0] == i ||
+	 triangleIndices[j].indexes[1] == i ||
+	 triangleIndices[j].indexes[2] == i )
+      {
+	directionSum += normals[j];
+      }
+    }
+    // Normalizing direction sum
+    vertex.normal = Vec3f::normalize(directionSum);
+  }
+}

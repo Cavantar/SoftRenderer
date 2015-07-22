@@ -47,6 +47,7 @@ public:
   
   void drawPolygonMapped(TextureBuffer* screenBuffer, MappedPolygon& polygon, const TextureBuffer* srcTexture, bool outline = true);
   void setCamera(Camera* camera) { this->camera = camera; }
+  void setDirectionalLight(const Vec3f& directionalLight) { this->directionalLight = directionalLight; }
   
   void setZBufferSize(const Vec2i& zBufferSize);
   void clearZBuffer();
@@ -56,6 +57,7 @@ private:
   Camera* camera;
   FloatMatrix zBuffer;
   real32 ambientLight = 0.3f;
+  Vec3f directionalLight = Vec3f(-0.707f, -0.707f, -0.707f);
   
   ScanLineVector getScanLines(const Polygon2D& polygon) const;
   MScanLineVector getScanLinesMapped(const MappedPolygon& polygon, const Vec2i& screenResolution) const;
@@ -64,7 +66,7 @@ private:
   Vertices castVertices(const Vertices& vertices) const;
   
   void castMappedVertices(MappedVertices& vertices) const;
-  UVCasted castPerspective(const MappedVertex& v1, const MappedVertex& v2, real32 t) const ;
+  VertexCasted castPerspective(const MappedVertex& v1, const MappedVertex& v2, real32 t) const ;
   
   Polygons clip(const Polygons& polygons, real32 nearZ) const;
   MappedPolygons clip(const MappedPolygons& polygons, real32 nearZ) const;

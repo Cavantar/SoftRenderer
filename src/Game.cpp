@@ -32,6 +32,7 @@ Game::~Game()
 void Game::start(const Vec2i& screenResolution)
 {
   softRenderer.setZBufferSize(screenResolution);
+  camera.setPosition(Vec3f(0, 2.0f, -2.0f));  
 }
 
 void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDeltaMs)
@@ -44,6 +45,11 @@ void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDe
   
   camera.handleInput(input, lastDeltaMs);
   softRenderer.setCamera(&camera);
+  
+  Vec3f directionalLight(-1.0f, 0, 0);
+  directionalLight.rotateAroundZDeg(45.0f);// + sin(localTime * 0.005f) * 10.0f);
+  directionalLight.rotateAroundYDeg(localTime * 0.0002f * 360);
+  softRenderer.setDirectionalLight(directionalLight);
   
   if(0)
   {
@@ -117,7 +123,7 @@ void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDe
     
     // Cube Rendering
     // -----------------------
-    cubePosition.z = 0.6f;// + sin(localTime * 0.0025f) * 0.3f;
+    cubePosition.z = 0.6f; // + sin(localTime * 0.0025f) * 0.3f;
     rotAngleY += lastDeltaMs * 0.10f;
     Cube cube(cubePosition, 0.2f);
     softRenderer.drawCubeInPerspective(screenBuffer, cube, rotAngleX, rotAngleY);
@@ -127,38 +133,59 @@ void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDe
   
   if(1)
   {
-    real32 testScale = 5.0f;
+    real32 testScale = 0.5f;
     real32 testDistance = sin(localTime * 0.005f) * 0.2f + 1.0f;
     static real32 rotationValue = 0;
     
     // if(input.keysDown[SDLK_a])
     //   rotationValue = sin(localTime * 0.002f) * 3.0f;
     
-    Vec3f v1 = Vec3f(-0.1 * testScale, 0.1 * testScale, 0);
-    Vec3f v2 = Vec3f(0.1 * testScale, 0.1 * testScale, 0);
-    v2.rotateAroundY(rotationValue);
+    Vec3f v1 = Vec3f(-testScale, testScale, 0);
+    Vec3f v2 = Vec3f(testScale, testScale, 0);
     
-    Vec3f v3 = Vec3f(-0.1 * testScale, -0.1 * testScale, 0);
-    Vec3f v4 = Vec3f(0.1 * testScale, -0.1 * testScale, 0);
-    v4.rotateAroundY(rotationValue);
+    Vec3f v3 = Vec3f(-testScale, -testScale, 0);
+    Vec3f v4 = Vec3f(testScale, -testScale, 0);
     
-    Vec3f tempPosition(-0.25f, 0, 1.5f);
     
     real32 textureScale = 4.0f;
     Vec2f textOffset(0, 0);
     TriangleIndices triangleIndices = {{0, 1, 2}, {1, 3, 2}};
-
+    
     {
-      MappedVertices mappedVertices = {
-	{ v1 + tempPosition, Vec2f(textOffset.x, textOffset.y), Vec3f() },
-	{ v2 + tempPosition, Vec2f(textOffset.x + 1.0f * textureScale, textOffset.y), Vec3f() },
-	{ v3 + tempPosition, Vec2f(textOffset.x + 0, 1.0f * textureScale + textOffset.y), Vec3f() },
-	{ v4 + tempPosition, Vec2f(textOffset.x + 1.0f * textureScale, 1.0f * textureScale + textOffset.y), Vec3f() }
+      MappedVertices frontFace = {
+	{ v1, Vec2f(textOffset.x, textOffset.y), Vec3f() },
+	{ v2, Vec2f(textOffset.x + 1.0f * textureScale, textOffset.y), Vec3f() },
+	{ v3, Vec2f(textOffset.x + 0, 1.0f * textureScale + textOffset.y), Vec3f() },
+	{ v4, Vec2f(textOffset.x + 1.0f * textureScale, 1.0f * textureScale + textOffset.y), Vec3f() }
       };    
       
-      softRenderer.drawMappedTriangles3D(screenBuffer, mappedVertices, triangleIndices, &testTexture);
+      MeshHelper::translateVertices(frontFace, Vec3f(0, 0, -testScale));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+      
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+            
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+            
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+                  
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, 0, 90.0f));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+      
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, 0, 180.0f));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
     }
-
+    
+    Vec3f tempPosition(-0.25f, 0, 1.5f);
+    
     tempPosition.z += 1.0f;
     {
       MappedVertices mappedVertices = {
@@ -166,7 +193,9 @@ void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDe
 	{ v2 + tempPosition, Vec2f(textOffset.x + 1.0f * textureScale, textOffset.y), Vec3f() },
 	{ v3 + tempPosition, Vec2f(textOffset.x + 0, 1.0f * textureScale + textOffset.y), Vec3f() },
 	{ v4 + tempPosition, Vec2f(textOffset.x + 1.0f * textureScale, 1.0f * textureScale + textOffset.y), Vec3f() }
-      };    
+      };
+
+      MeshHelper::calculateNormals(mappedVertices, triangleIndices);
       
       // softRenderer.drawMappedTriangles3D(screenBuffer, mappedVertices, triangleIndices, &testTexture);
     }

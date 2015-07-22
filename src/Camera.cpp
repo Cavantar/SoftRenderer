@@ -13,21 +13,23 @@ Camera::getDfc() const
 void
 FPSCamera::handleInput(const Input& input, real32 lastDelta)
 {
-
+  static const real32 rotationSpeed = 0.01f;
+  
   if(input.isKeyDown(SDLK_8)) rotY += 0.001f * lastDelta;
   if(input.isKeyDown(SDLK_9)) rotY -= 0.001f * lastDelta;
-
+  
+  
   if(input.isButtonDown(SDL_BUTTON_LEFT))
   {
     Vec2i mouseDelta = input.getMouseDelta();
     
-    rotY += 0.0003f * lastDelta * -mouseDelta.x;
-    rotX += 0.0003f * lastDelta * -mouseDelta.y;
+    rotY += rotationSpeed * lastDelta * -mouseDelta.x;
+    rotX += rotationSpeed * lastDelta * -mouseDelta.y;
   }
   
   Vec3f lookVector(0, 0, 1.0f);
-  lookVector.rotateAroundY(-rotY);
-  lookVector.rotateAroundX(rotX);
+  lookVector.rotateAroundYDeg(-rotY);
+  lookVector.rotateAroundXDeg(rotX);
   
   if(input.isKeyDown(SDLK_w)) position += lookVector * 0.001f * lastDelta;
   if(input.isKeyDown(SDLK_s)) position -= lookVector * 0.001f * lastDelta;
@@ -55,6 +57,15 @@ FPSCamera::castVertices(Vertices& vertices) const
   MeshHelper::rotateVertices(vertices, Vec3f(0, rotY, 0));
   MeshHelper::rotateVertices(vertices, Vec3f(-rotX, 0, 0));
   
+}
+
+Vec3f
+FPSCamera::castDirectionalLight(const Vec3f& dirLight) const
+{
+  Vec3f result = dirLight;
+  result.rotateAroundYDeg(rotY);
+  result.rotateAroundXDeg(-rotX);
+  return result;
 }
 
 real32

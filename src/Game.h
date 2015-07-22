@@ -17,7 +17,7 @@ public:
 private:
   
   SoftRenderer softRenderer;
-  FPSCamera camera;
+  FPSCamera camera = FPSCamera(Vec3f(), 45.0f, 0);
   
   Vec2f offset;
   TextureBuffer testTexture;

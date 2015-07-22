@@ -59,8 +59,9 @@ struct MappedPolygon {
 
 typedef std::vector<MappedPolygon> MappedPolygons;
 
-struct UVCasted {
+struct VertexCasted {
   Vec2f uv;
+  Vec3f normal;
   real32 z;
 };
 
@@ -115,7 +116,7 @@ public:
 class MeshHelper {
 public:
   
-  static Vec3f getCrossProduct(const IndexedTriangle& indexedTriangle, const Vertices& vertices);
+  static Vec3f getCrossProduct(const Vertices& vertices, const IndexedTriangle& indexedTriangle);
   static Vec3f getCrossProduct(const MappedTriangle& triangle);
   
   static TriangleVector getTrianglesFromIndices(const TriangleIndices& triangleIndexes, const Vertices& vertices);
@@ -129,5 +130,8 @@ public:
   
   static void translateVertices(Vertices& vertices, const Vec3f& translationVector);
   static void translateVertices(MappedVertices& vertices, const Vec3f& translationVector);
+
+  static Vec3f getFaceNormal(const MappedVertices& vertices, const IndexedTriangle& indexedTriangle);
+  static void calculateNormals(MappedVertices& vertices, const TriangleIndices& triangleIndices);
 };
 

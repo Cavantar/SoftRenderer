@@ -10,5 +10,7 @@
     CLOSED: [2015-07-22 ¶r. 10:56]
 *** DONE Write Basic Lighting(Proof of concept).
     CLOSED: [2015-07-22 ¶r. 12:28]
+*** DONE Write Normal Based Lighting.
+    CLOSED: [2015-07-22 ¶r. 13:57]
 *** TODO Write Lighting With Lamp System - Color Blend.
 *** TODO Write Obj Loader.

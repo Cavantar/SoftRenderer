@@ -208,11 +208,12 @@ SoftRenderer::drawTriangles3D(TextureBuffer* screenBuffer, const Vertices& verti
   
   for(int i = 0; i < triangleCount; i++)
   {
-    Vec3f triangleNormal = MeshHelper::getCrossProduct(triangleIndices[i], castedVertices);
+    Vec3f triangleNormal = MeshHelper::getCrossProduct(castedVertices, triangleIndices[i]);
     Vec3f lookVector = Vec3f(0, 0, 1.0f);
-    
-    real32 dotProduct = Vec3f::dotProduct(lookVector, triangleNormal);
-    if(dotProduct >= 0)
+
+    // Minus Because have to reverse lookVector direction.
+    real32 dotProduct = -Vec3f::dotProduct(lookVector, triangleNormal);
+    if(dotProduct > 0)
       trianglesToProcess.push_back(triangleVector[i]);
   }
   
@@ -254,10 +255,10 @@ SoftRenderer::drawMappedTriangles3D(TextureBuffer* screenBuffer, const MappedVer
     Vec3f triangleNormal = MeshHelper::getCrossProduct(triangles[i]);
     Vec3f lookVector = Vec3f(0, 0, 1.0f);
     
-    real32 dotProduct = Vec3f::dotProduct(lookVector, triangleNormal);
+    real32 dotProduct = -Vec3f::dotProduct(lookVector, triangleNormal);
     
     // if so process the triangle further
-    if(dotProduct >= 0)
+    if(dotProduct > 0)
       trianglesToProcess.push_back(triangles[i]);
   }
   
@@ -315,6 +316,7 @@ SoftRenderer::drawPolygonMapped(TextureBuffer* screenBuffer, MappedPolygon& poly
 				bool outline)
 {
   Vec3f color(128.0f, 0, 0);
+  Vec3f castedDirectionalLight = camera->castDirectionalLight(directionalLight);
   
   real32 dfc = camera->getDfc();
   const Vec2i& screenResolution = screenBuffer->dimensions;
@@ -332,7 +334,7 @@ SoftRenderer::drawPolygonMapped(TextureBuffer* screenBuffer, MappedPolygon& poly
     Vec3f minDelta = v2Min.position - v1Min.position;
     real32 minT = ((real32)scanLine.y - v1Min.position.y) / minDelta.y;
     
-    UVCasted uvCastedLeft = castPerspective(v1Min, v2Min, minT);
+    VertexCasted uvCastedLeft = castPerspective(v1Min, v2Min, minT);
     
     MappedVertex v1Max = polygon.vertices[scanLine.maxVertexIndex];
     MappedVertex v2Max = polygon.vertices[(scanLine.maxVertexIndex + 1) % polygon.vertices.size()];
@@ -340,19 +342,25 @@ SoftRenderer::drawPolygonMapped(TextureBuffer* screenBuffer, MappedPolygon& poly
     Vec3f maxDelta = v2Max.position - v1Max.position;
     real32 maxT = ((real32)scanLine.y - v1Max.position.y) / maxDelta.y;
     
-    UVCasted uvCastedRight = castPerspective(v1Max, v2Max, maxT);
+    VertexCasted uvCastedRight = castPerspective(v1Max, v2Max, maxT);
     
     // Start for Calculating uv perPixel
+    // Calculating divided by Z
     Vec2f SUVleft = uvCastedLeft.uv / uvCastedLeft.z;
     Vec2f SUVright = uvCastedRight.uv / uvCastedRight.z;
     
+    Vec3f SNleft = uvCastedLeft.normal / uvCastedLeft.z;
+    Vec3f SNright = uvCastedRight.normal / uvCastedRight.z;
+    
     real32 currentSZ = 1.0f / uvCastedLeft.z;
     Vec2f currentSUV = SUVleft;
+    Vec3f currentSN = SNleft;
     
     uint32 scanLineLength = scanLine.endX - scanLine.startX;
     
     real32 zDeltaPerPixel = ((1.0f / uvCastedRight.z) - currentSZ) / scanLineLength; 
     Vec2f uvDeltaPerPixel = (SUVright - SUVleft) / scanLineLength; 
+    Vec3f nDeltaPerPixel = (SNright - SNleft) / scanLineLength; 
     
     for(int x = scanLine.startX; x <= scanLine.endX; x++)
     {
@@ -364,6 +372,7 @@ SoftRenderer::drawPolygonMapped(TextureBuffer* screenBuffer, MappedPolygon& poly
 	zBuffer[scanLine.y][x] = currentZ;
 	
 	Vec2f resultUV = currentSUV / currentSZ;
+	Vec3f resultN = currentSN / currentSZ;
 	Vec3f textureColor = srcTexture->getPixelUV(resultUV);
 	
 	// Getting Original Pixel Position in 3D
@@ -384,15 +393,25 @@ SoftRenderer::drawPolygonMapped(TextureBuffer* screenBuffer, MappedPolygon& poly
 	Vec3f deltaPosition = pixelPosition;
 	real32 distanceFromPixel = deltaPosition.getLength();
 	
-	ambientLight =  1.0f - ((distanceFromPixel - dfc) / 2.0f);
-	ambientLight = std::max(std::min(ambientLight, 1.0f), 0.0f);
+	// ambientLight =  1.0f - ((distanceFromPixel - dfc) / 2.0f);
 	
-	textureColor *= ambientLight;
+	// real32 tempT = (x - scanLine.startX) / scanLineLength;
+	// VertexCasted pixelValues = castPerspective(uvCastedLeft, uvCastedRight, tempT);
+	
+	Vec3f pixelNormal = resultN;
+	Vec3f lookVectorR(0, 0, -1);
+	
+	real32 lightValue = std::max(Vec3f::dotProduct(pixelNormal, castedDirectionalLight * -1.0f), 0.0f);
+	lightValue += ambientLight;
+	lightValue = std::max(std::min(lightValue, 1.0f), 0.0f);
+	
+	textureColor *= lightValue;
 	screenBuffer->setPixel(x, scanLine.y, textureColor);
       }
       
       currentSZ += zDeltaPerPixel;
       currentSUV += uvDeltaPerPixel;
+      currentSN += nDeltaPerPixel;
     }
   }
   
@@ -644,29 +663,39 @@ SoftRenderer::castMappedVertices(MappedVertices& vertices) const
   
 }
 
-UVCasted
+VertexCasted
 SoftRenderer::castPerspective(const MappedVertex& v1, const MappedVertex& v2, real32 t) const
 {
-  UVCasted result;
-  
+  VertexCasted result;
+
+  // Divided By Z Values
   Vec2f SUVv1 = v1.uv / v1.position.z; 
   Vec2f SUVv2 = v2.uv / v2.position.z;
+
+  Vec3f SNv1 = v1.normal / v1.position.z; 
+  Vec3f SNv2 = v2.normal / v2.position.z;
   
-  // UvDelta
+  // Deltas 
   Vec2f SUVDelta = SUVv2 - SUVv1;
-  
+  Vec3f SNDelta = SNv2 - SNv1;
+
+  // Z Calculations
   real32 SZv1 = 1.0f / v1.position.z;
   real32 SZv2 = 1.0f / v2.position.z;
   real32 SZDelta = SZv2 - SZv1;
-  
+
+  // Result
   Vec2f SUVResult = SUVv1 + (SUVDelta  * t);
+  Vec3f SNResult = SNv1 + (SNDelta  * t);
   real32 ZResult = SZv1 + (SZDelta  * t);
   
   real32 resultZ = 1.0f / ZResult;
   
   Vec2f resultUV = SUVResult * resultZ;
+  Vec3f resultN = SNResult * resultZ;
   
   result.uv = resultUV;
+  result.normal = resultN;
   result.z = resultZ;
   
   return result;
