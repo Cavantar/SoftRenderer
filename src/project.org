@@ -1,0 +1,14 @@
+* SoftRenderer
+** TODOS
+*** DONE Handle Input.
+    CLOSED: [2015-07-22 ¶r. 10:00]
+*** DONE Finish Camera.
+    CLOSED: [2015-07-22 ¶r. 10:00]
+*** DONE Write Z Buffer.
+    CLOSED: [2015-07-22 ¶r. 10:35]
+*** DONE Write Faster Perspective Calculations.
+    CLOSED: [2015-07-22 ¶r. 10:56]
+*** DONE Write Basic Lighting(Proof of concept).
+    CLOSED: [2015-07-22 ¶r. 12:28]
+*** TODO Write Lighting With Lamp System - Color Blend.
+*** TODO Write Obj Loader.
