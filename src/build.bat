@@ -19,7 +19,8 @@ set FilesToCompile=^
 ..\src\main.cpp ^
 ..\src\Game.cpp ^
 ..\src\SoftRenderer.cpp ^
-..\src\RenderPrimitives.cpp 
+..\src\RenderPrimitives.cpp ^
+..\src\Camera.cpp 
 
 cl %CompilerOptions% %FilesToCompile% %Libraries% %LinkerOptions%
 

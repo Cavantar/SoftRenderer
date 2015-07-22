@@ -11,11 +11,73 @@
 #include "Game.h"
 #include "RenderPrimitives.h"
 
+
+Input::Input()
+{
+  memset(keysPressed, 0, sizeof(keysPressed));
+  memset(keysReleased, 0, sizeof(keysReleased));
+  memset(keysDown, 0, sizeof(keysReleased));
+  
+  memset(buttonsPressed, 0, sizeof(buttonsPressed));
+  memset(buttonsReleased, 0, sizeof(buttonsReleased));
+  memset(buttonsDown, 0, sizeof(buttonsReleased));
+}
+
+void
+Input::handleKeyPress(uint8 key)
+{
+  keysDown[key] = true;
+  keysPressed[key] = true;
+}
+
+void
+Input::handleKeyRelease(uint8 key)
+{
+  keysDown[key] = false;
+  keysReleased[key] = true;
+}
+
+void
+Input::handleButtonPress(uint8 button)
+{
+  buttonsDown[button] = true;
+  buttonsPressed[button] = true;
+}
+
+void
+Input::handleButtonRelease(uint8 button)
+{
+  buttonsDown[button] = false;
+  buttonsReleased[button] = true;
+}
+
+void
+Input::handleMouseMove(int32 x, int32 y)
+{
+  Vec2i newMousePosition = Vec2i(x, y);
+  mousePositionDelta = mousePosition - newMousePosition;
+  
+  mousePosition = newMousePosition;
+}
+
+void
+Input::clear()
+{
+  memset(keysPressed, 0, sizeof(keysPressed));
+  memset(keysReleased, 0, sizeof(keysReleased));
+  
+  memset(buttonsPressed, 0, sizeof(buttonsPressed));
+  memset(buttonsReleased, 0, sizeof(buttonsReleased));
+  
+  mousePositionDelta = Vec2i();
+}
+
 int main( int argc, char* args[] )
 {
   // redirectIOToConsole();
 
   Game game;
+  Vec2i screenResolution(1280, 720);
   
   //The window we'll be rendering to
   SDL_Window* window = NULL;
@@ -28,7 +90,7 @@ int main( int argc, char* args[] )
   else
   {
     window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
-			       SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+			       SDL_WINDOWPOS_UNDEFINED, screenResolution.x, screenResolution.y, SDL_WINDOW_SHOWN );
     
     if( window == NULL )
     {
@@ -50,19 +112,19 @@ int main( int argc, char* args[] )
       renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
       
       bool quit = false;
-      Input input = {};
+      Input input;
       
       float lastDeltaMs = 2;
       
       TextureBuffer screenBuffer = {};
-      screenBuffer.dimensions = Vec2i(1280, 720);
+      screenBuffer.dimensions = screenResolution;
       
       SDL_Texture* screenTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
 						     SDL_TEXTUREACCESS_STREAMING,
 						     screenBuffer.dimensions.x,
 						     screenBuffer.dimensions.y);
       
-      game.start();
+      game.start(screenResolution);
       
       while(!quit){
 	SDL_Event event;
@@ -80,38 +142,59 @@ int main( int argc, char* args[] )
 	    {
 	      if(!event.key.repeat)
 	      {
+		uint8 key = (uint8)event.key.keysym.sym;
+
 		if(event.key.state == SDL_PRESSED)
 		{
-		  uint8 key = (uint8)event.key.keysym.sym;
-		  
-		  input.keysDown[key] = true;
-		  input.keysPressed[key] = true;
+		  input.handleKeyPress(key);
 		}
 		else // Key Released
 		{
-		  uint8 key = (uint8)event.key.keysym.sym;
-		  
-		  input.keysDown[key] = false;
-		  input.keysReleased[key] = true;
-		  
+		  input.handleKeyRelease(key);
 		}
 	      }
 	      break;
 	    }
+	  case SDL_MOUSEMOTION:
+	    {
+	      // std::cout << "Mouse Position: " << event.motion.x << " " << event.motion.y << std::endl;
+	      uint32 x = event.motion.x;
+	      uint32 y = event.motion.y;
+	      
+	      input.handleMouseMove(x, y);
+	    }
+	    break;
+	  case SDL_MOUSEBUTTONUP:
+	  case SDL_MOUSEBUTTONDOWN:
+	    {
+	      // std::cout << "Mouse Position: " << event.motion.x << " " << event.motion.y << std::endl;
+	      uint8 button = event.button.button;
+	      if(event.button.state == SDL_PRESSED)
+	      {
+		input.handleButtonPress(button);
+	      }
+	      else
+	      {
+		input.handleButtonRelease(button);
+	      }
+	      
+	    }
+	    break;
 	  }
 	}
 	
-	if(input.keysDown[SDLK_ESCAPE] || input.keysDown[SDLK_q]) quit = true;
+	// input.keysDown
+	
+	if(input.isKeyDown(SDLK_ESCAPE) || input.isKeyDown(SDLK_q)) quit = true;
 	
 	SDL_LockTexture(screenTexture, NULL, (void**)&screenBuffer.pixelData, &screenBuffer.pitch);
-	game.update(&screenBuffer, &input, lastDeltaMs);
+	game.update(&screenBuffer, input, lastDeltaMs);
 	SDL_UnlockTexture(screenTexture);
 	
 	SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
 	SDL_RenderPresent(renderer);
-	
-	memset(input.keysPressed, 0, sizeof(input.keysPressed));
-	memset(input.keysReleased, 0, sizeof(input.keysReleased));
+
+	input.clear();
 	
 	// Time Stuff
 	// --------------------

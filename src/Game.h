@@ -10,10 +10,14 @@ public:
   
   Game();
   ~Game();
-  void start();
-  void update(TextureBuffer* screenBuffer, const Input* input, float lastDeltaMs);
+  
+  void start(const Vec2i& screenResolution);
+  void update(TextureBuffer* screenBuffer, const Input& input, float lastDeltaMs);
   void cleanUp();
 private:
+  
+  SoftRenderer softRenderer;
+  FPSCamera camera;
   
   Vec2f offset;
   TextureBuffer testTexture;
@@ -23,7 +27,7 @@ private:
   
   Vec3f cubePosition = Vec3f(0.25f, 0, 2.0f);
   
-  void handleInput(const Input* input, float lastDeltaMs);
+  void handleInput(const Input& input, float lastDeltaMs);
   void fillScreen(TextureBuffer* screenBuffer);
 };
 
