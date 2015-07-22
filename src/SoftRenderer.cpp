@@ -242,30 +242,34 @@ SoftRenderer::drawMappedTriangles3D(TextureBuffer* screenBuffer, const MappedVer
 {
   MappedVertices mappedVertices = _mappedVertices;
   camera->castVertices(mappedVertices);
-  castMappedVertices(mappedVertices);
   
   MappedTriangles triangles = MeshHelper::getTrianglesFromIndices(triangleIndices, mappedVertices);
-  MappedTriangles trianglesToProcess;
-  
+
+
+  real32 dfc = camera->getDfc();
   uint32 triangleCount = triangles.size();
+  MappedPolygons polygonsToDraw;
   
   for(int i = 0; i < triangleCount; i++)
   {
     // Checking if the plane is facing the camera
-    Vec3f triangleNormal = MeshHelper::getCrossProduct(triangles[i]);
+    Vec3f triangleNormal = MeshHelper::getCrossProductCasted(triangles[i], dfc);
     Vec3f lookVector = Vec3f(0, 0, 1.0f);
     
     real32 dotProduct = -Vec3f::dotProduct(lookVector, triangleNormal);
     
     // if so process the triangle further
     if(dotProduct > 0)
-      trianglesToProcess.push_back(triangles[i]);
+    {
+      MappedPolygon polygon = triangles[i].toPolygon();
+      real32 clipDistance = 0.5f;
+      polygon = polygon.clip(clipDistance, dfc);
+      
+      castPolygon(polygon);
+      polygonsToDraw.push_back(polygon);
+    }
   }
-  
-  MappedPolygons polygons = MeshHelper::trianglesToPolys(trianglesToProcess);
-  real32 clipDistance = 0.5f;
-  
-  MappedPolygons polygonsToDraw = clip(polygons, clipDistance);
+
   for(auto it = polygonsToDraw.begin(); it != polygonsToDraw.end(); it++)
   {
     const MappedPolygon& mappedPolygon = *it;
@@ -662,6 +666,19 @@ SoftRenderer::castMappedVertices(MappedVertices& vertices) const
   }
   
 }
+void
+SoftRenderer::castPolygon(MappedPolygon& polygon) const
+{
+  uint32 vertexCount = polygon.vertices.size();
+  real32 dfc = camera->getDfc();
+  
+  // Transforming Coordinates
+  for(int i = 0; i < vertexCount; i++)
+  {
+    Vec3f& position = polygon.vertices[i].position;
+    position = MeshHelper::castVertex(position, dfc);
+  }
+}
 
 VertexCasted
 SoftRenderer::castPerspective(const MappedVertex& v1, const MappedVertex& v2, real32 t) const
@@ -725,7 +742,7 @@ SoftRenderer::clip(const MappedPolygons& polygons, real32 nearZ) const
   {
     const MappedPolygon& src = *it;
     // MappedPolygon dst = src;
-    MappedPolygon dst = src.clip(nearZ);
+    MappedPolygon dst = src.clip(nearZ, camera->getDfc());
     
     if(dst.vertices.size() >= 3)
     {

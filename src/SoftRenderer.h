@@ -66,6 +66,9 @@ private:
   Vertices castVertices(const Vertices& vertices) const;
   
   void castMappedVertices(MappedVertices& vertices) const;
+  void castPolygon(MappedPolygon& polygon) const;
+  // Vec3f castVertex(const Vec3f& position, real32 dfc) const;
+  
   VertexCasted castPerspective(const MappedVertex& v1, const MappedVertex& v2, real32 t) const ;
   
   Polygons clip(const Polygons& polygons, real32 nearZ) const;

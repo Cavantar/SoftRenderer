@@ -88,6 +88,52 @@ Polygon3D::toPolygon2D() const
   return result;
 }
 
+MappedVertex
+MappedVertex::operator-(const MappedVertex& vertex) const
+{
+  MappedVertex result = *this;
+  
+  result.position -= vertex.position;
+  result.uv -= vertex.uv;
+  result.normal -= vertex.normal;
+  
+  return result;
+}
+
+MappedVertex
+MappedVertex::operator+(const MappedVertex& vertex) const
+{
+  MappedVertex result = *this;
+  
+  result.position += vertex.position;
+  result.uv += vertex.uv;
+  result.normal += vertex.normal;
+  
+  return result;
+}
+
+MappedVertex
+MappedVertex::operator*(real32 scalar) const
+{
+  MappedVertex result = *this;
+  
+  result.position *= scalar;
+  result.uv *= scalar;
+  result.normal *= scalar;
+  
+  return result;  
+}
+
+MappedVertex
+MappedVertex::lerp(const MappedVertex& v1, const MappedVertex& v2, real32 t)
+{
+  MappedVertex result;
+  MappedVertex deltaVertex = v2 - v1;
+
+  result = v1 + (deltaVertex * t);
+  return result;
+}
+
 Polygon3D
 Polygon3D::clip(real32 nearZ) const
 {
@@ -131,71 +177,196 @@ Polygon3D::clip(real32 nearZ) const
   }
   return result;
 }
+MappedPolygon
+MappedTriangle::toPolygon() const
+{
+  MappedPolygon polygon;
+  polygon.vertices.resize(3);
+  
+  for(int i = 0; i < 3; i++)
+  {
+    polygon.vertices[i] = vertices[i];
+  }
+  return polygon;
+}
 
 MappedPolygon
-MappedPolygon::clip(real32 nearZ) const
+MappedPolygon::clipNear(const MappedPolygon& polygon, real32 nearZ)
 {
   MappedPolygon result;
-  uint32 verticyCount = vertices.size();
-  for(auto i = 0; i < verticyCount; i++)
+  std::vector<MappedVertex> dstVertices;
+  
+  const std::vector<MappedVertex>& srcVertices = polygon.vertices;
+  uint32 vertexCount = srcVertices.size();
+  for(auto i = 0; i < vertexCount; i++)
   {
-    uint32 nextVertexIndex = (i + 1)%verticyCount;
+    uint32 nextVertexIndex = (i + 1)%vertexCount;
     
-    const Vec3f& v1 = vertices[i].position;
-    const Vec3f& v2 = vertices[nextVertexIndex].position;
+    const Vec3f& v1 = srcVertices[i].position;
+    const Vec3f& v2 = srcVertices[nextVertexIndex].position;
     
     // Ignore if both
     if(v1.z >= nearZ && v2.z >= nearZ)
     {
-      result.vertices.push_back(vertices[i]);
+      dstVertices.push_back(srcVertices[i]);
     }
     else if(v1.z >= nearZ && v2.z < nearZ)
     {
-      result.vertices.push_back(vertices[i]);
+      dstVertices.push_back(srcVertices[i]);
       
-      Vec3f delta = v1 - v2;
-      real32 t = (v1.z - nearZ) / delta.z;
+      real32 deltaZ = v1.z - v2.z;
+      real32 t = (v1.z - nearZ) / deltaZ;
       
-      Vec3f addedVector = v1 - (delta * t);
-      Vec2f textureCoordsDelta = vertices[i].uv - vertices[nextVertexIndex].uv;
-      
-      //TODO(jakub): Interpolate using perspective
-      Vec2f textureCoords = vertices[i].uv - (textureCoordsDelta * t);
-      
-      MappedVertex addedVertex;
-      addedVertex.uv = textureCoords;
-      
-      // Important ------------------ 
-      // addedVertex.uv = vertices[i].uv;
-      addedVertex.position = addedVector;
-      
-      result.vertices.push_back(addedVertex);
+      MappedVertex addedVertex = MappedVertex::lerp(srcVertices[i], srcVertices[nextVertexIndex], t);
+      dstVertices.push_back(addedVertex);
     }
     else if(v1.z < nearZ && v2.z >= nearZ)
     {
-      Vec3f delta = v2 - v1;
-      real32 t = (v2.z - nearZ) / delta.z;
+      real32 deltaZ = v2.z - v1.z;
+      real32 t = (v2.z - nearZ) / deltaZ;
       
-      Vec3f addedVector = v2 - (delta * t);
-      
-      
-      Vec2f textureCoordsDelta = vertices[nextVertexIndex].uv - vertices[i].uv;
-      
-      //TODO(jakub): Interpolate using perspective
-      Vec2f textureCoords = vertices[nextVertexIndex].uv - (textureCoordsDelta * t);
-      
-      MappedVertex addedVertex;
-      addedVertex.uv = textureCoords;
-      
-      // Important ------------------ 
-      // addedVertex.uv = vertices[nextVertexIndex].uv;
-      addedVertex.position = addedVector;
-      
-      result.vertices.push_back(addedVertex);
-      // result.vertices.push_back(vertices[nextVertexIndex]);
+      MappedVertex addedVertex = MappedVertex::lerp(srcVertices[nextVertexIndex], srcVertices[i], t);
+      dstVertices.push_back(addedVertex);
     }
   }
+  
+  result.vertices = dstVertices;
   return result;
+}
+
+MappedPolygon
+MappedPolygon::clipSide(const MappedPolygon& polygon, real32 dfc)
+{
+  MappedPolygon result;
+  std::vector<MappedVertex> dstVertices;
+  
+  const std::vector<MappedVertex>& srcVertices = polygon.vertices;
+  uint32 vertexCount = srcVertices.size();
+  real32 a1 = dfc * -1.0f;
+
+  for(auto i = 0; i < vertexCount; i++)
+  {
+    uint32 nextVertexIndex = (i + 1)%vertexCount;
+    
+    const Vec3f& v1 = srcVertices[i].position;
+    const Vec3f& v2 = srcVertices[nextVertexIndex].position;
+    
+    // x is conventional x in linear equation, z is my result
+
+    real32 minZV1 = a1 * v1.x;
+    real32 minZV2 = a1 * v2.x;
+    
+    // Ignore if both
+    if(v1.z >= minZV1 && v2.z >= minZV2)
+    {
+      dstVertices.push_back(srcVertices[i]);
+    }
+    else if(v1.z >= minZV1 && v2.z < minZV2)
+    {
+      dstVertices.push_back(srcVertices[i]);
+
+      real32 dx = v1.x - v2.x;
+      real32 dz = v1.z - v2.z;
+      
+      real32 a2 = 0;
+      real32 t = 0;
+      
+      real32 z = 0;
+      real32 x = 0;
+
+      // If it's not aligned horizontally or vertically
+      if(dx != 0 && dz != 0)
+      {
+	a2 = dz/dx;
+	
+	const Vec3f& startPosition = v2;
+	
+	x = ((-a2*startPosition.x) + startPosition.z) / (a1 - a2);
+	t = (v1.x - x) / dx;
+      }
+      else
+      {
+	if(dx == 0)
+	{
+	  // Vertical Alignment
+	  x = v1.x; // Both Vertices have the same x
+
+	  // LinearEquation
+	  z = a1 * x;
+	  
+	  t = (v1.z - z) / dz;
+	}
+	else
+	{
+	  // Horizontal Alignment
+	  z = v1.z; // Both Vertices have the same z
+	  
+	  // LinearEquation - Solved For X
+	  x = z / a1;
+	  
+	  t = (v1.x - x) / dx; 
+	}
+      }
+      
+      MappedVertex addedVertex = MappedVertex::lerp(srcVertices[i], srcVertices[nextVertexIndex], t);
+      dstVertices.push_back(addedVertex);
+    }
+    else if(v1.z < minZV1 && v2.z >= minZV2)
+    {
+      
+      real32 dx = (v2.x - v1.x);
+      real32 dz = (v2.z - v1.z);
+      
+      real32 a2 = 0;
+      real32 t = 0;
+      
+      real32 z = 0; 
+      real32 x = 0;
+      
+      const Vec3f& startPosition = v1;
+      
+      if(dx != 0 && dz != 0)
+      {
+	a2 = dz/dx;
+	
+	x = ((-a2*startPosition.x) + startPosition.z) / (a1 - a2);
+	t = (v2.x - x) / dx;
+      }
+      else
+      {
+	if(dx == 0)
+	{
+	  // Vertical Alignment
+	  
+	  x = startPosition.x;
+	  z = a1 * x;
+	  t = (v2.z - z) / dz;
+	}
+	else
+	{
+	  z = startPosition.z;
+	  x = z / a1;
+	  t = (v2.x - x) / dx;
+	}
+      }
+      
+      MappedVertex addedVertex = MappedVertex::lerp(srcVertices[nextVertexIndex], srcVertices[i], t);
+      dstVertices.push_back(addedVertex);
+    }
+  }
+  
+  result.vertices = dstVertices;
+  return result;
+}
+
+MappedPolygon
+MappedPolygon::clip(real32 nearZ, real32 dfc) const
+{
+  MappedPolygon nearClipped = clipNear(*this, nearZ);
+  MappedPolygon leftClipped = clipSide(nearClipped, dfc);
+  leftClipped = clipSide(leftClipped, -dfc);
+  
+  return leftClipped;
 }
 
 Polygon2D
@@ -212,6 +383,7 @@ MappedPolygon::toPolygon2D() const
   
   return result;
 }
+
 
 MappedPolygon
 MappedPolygon::toScreenSpace(const Vec2i& screenDimensions) const
@@ -300,6 +472,33 @@ MeshHelper::getCrossProduct(const MappedTriangle& triangle)
   Vec3f v2 = triangle.vertices[2].position - triangle.vertices[0].position;
   
   Vec3f result = Vec3f::cross(v1, v2);
+  return result;
+}
+
+Vec3f
+MeshHelper::castVertex(const Vec3f& position, real32 dfc)
+{
+  Vec3f result;
+  result.x = (position.x / position.z) * dfc;
+  result.y = (position.y / position.z) * dfc;
+  result.z = position.z;
+  return result;
+}
+
+Vec3f
+MeshHelper::getCrossProductCasted(const MappedTriangle& triangle, real32 dfc)
+{
+  MappedTriangle castedTriangle = triangle;
+  Vec3f result;
+
+  for(int i = 0; i < 3; i++)
+  {
+    Vec3f& position = castedTriangle.vertices[i].position;
+    position = castVertex(position, dfc);
+  }
+
+  result = getCrossProduct(castedTriangle);
+  
   return result;
 }
 

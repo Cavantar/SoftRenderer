@@ -8,7 +8,7 @@
 Game::Game()
 {
   // Generating Texture
-  Vec2i textureDimensions(100, 100);
+  Vec2i textureDimensions(20, 20);
   
   testTexture.dimensions = textureDimensions;
   testTexture.pixelData = new uint32[textureDimensions.x * textureDimensions.y];
@@ -17,7 +17,7 @@ Game::Game()
   {
     for(int x = 0; x < textureDimensions.x; x++)
     {
-      Vec3f color(x % 255, y % 255, 0);
+      Vec3f color(((real32)x / textureDimensions.x) * 255.0f, ((real32)y / textureDimensions.y) * 255.0f, 0);
       if(x == y || (textureDimensions.x - x - 1) == y ) color = Vec3f(0, 0, 255);
       testTexture.setPixel(x, y, color);
     }
@@ -32,7 +32,7 @@ Game::~Game()
 void Game::start(const Vec2i& screenResolution)
 {
   softRenderer.setZBufferSize(screenResolution);
-  camera.setPosition(Vec3f(0, 2.0f, -2.0f));  
+  camera.setPosition(Vec3f(2.0f, 2.0f, -2.0f));  
 }
 
 void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDeltaMs)
@@ -146,40 +146,49 @@ void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDe
     Vec3f v3 = Vec3f(-testScale, -testScale, 0);
     Vec3f v4 = Vec3f(testScale, -testScale, 0);
     
-    
-    real32 textureScale = 4.0f;
+    real32 textureScale = 3.0f;
     Vec2f textOffset(0, 0);
     TriangleIndices triangleIndices = {{0, 1, 2}, {1, 3, 2}};
+    static const real32 rotationSpeed = 0.001f;
     
     {
-      MappedVertices frontFace = {
+      MappedVertices baseFace = {
 	{ v1, Vec2f(textOffset.x, textOffset.y), Vec3f() },
 	{ v2, Vec2f(textOffset.x + 1.0f * textureScale, textOffset.y), Vec3f() },
 	{ v3, Vec2f(textOffset.x + 0, 1.0f * textureScale + textOffset.y), Vec3f() },
 	{ v4, Vec2f(textOffset.x + 1.0f * textureScale, 1.0f * textureScale + textOffset.y), Vec3f() }
       };    
       
-      MeshHelper::translateVertices(frontFace, Vec3f(0, 0, -testScale));
+      // Translating to the center
+      MeshHelper::translateVertices(baseFace, Vec3f(0, 0, -testScale));
+      
+      MappedVertices frontFace = baseFace;
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, localTime * rotationSpeed, 0));
       MeshHelper::calculateNormals(frontFace, triangleIndices);
       softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
       
       MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
       MeshHelper::calculateNormals(frontFace, triangleIndices);
       softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
-            
+      
       MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
-      MeshHelper::calculateNormals(frontFace, triangleIndices);
-      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
-            
-      MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
-      MeshHelper::calculateNormals(frontFace, triangleIndices);
-      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
-                  
-      MeshHelper::rotateVertices(frontFace, Vec3f(0, 0, 90.0f));
       MeshHelper::calculateNormals(frontFace, triangleIndices);
       softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
       
-      MeshHelper::rotateVertices(frontFace, Vec3f(0, 0, 180.0f));
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, 90.0f, 0));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+
+      frontFace = baseFace;
+      
+      MeshHelper::rotateVertices(frontFace, Vec3f(90.0f, 0, 0));
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, localTime * rotationSpeed, 0));
+      MeshHelper::calculateNormals(frontFace, triangleIndices);
+      softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
+      
+      frontFace = baseFace;
+      MeshHelper::rotateVertices(frontFace, Vec3f(-90.0f, 0, 0));
+      MeshHelper::rotateVertices(frontFace, Vec3f(0, localTime * rotationSpeed, 0));
       MeshHelper::calculateNormals(frontFace, triangleIndices);
       softRenderer.drawMappedTriangles3D(screenBuffer, frontFace, triangleIndices, &testTexture);
     }

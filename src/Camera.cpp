@@ -28,8 +28,8 @@ FPSCamera::handleInput(const Input& input, real32 lastDelta)
   }
   
   Vec3f lookVector(0, 0, 1.0f);
-  lookVector.rotateAroundYDeg(-rotY);
   lookVector.rotateAroundXDeg(rotX);
+  lookVector.rotateAroundYDeg(-rotY);
   
   if(input.isKeyDown(SDLK_w)) position += lookVector * 0.001f * lastDelta;
   if(input.isKeyDown(SDLK_s)) position -= lookVector * 0.001f * lastDelta;
