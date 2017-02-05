@@ -363,6 +363,7 @@ MappedPolygon
 MappedPolygon::clip(real32 nearZ, real32 dfc) const
 {
   MappedPolygon nearClipped = clipNear(*this, nearZ);
+  // sdfc *= 1.1f; 
   MappedPolygon leftClipped = clipSide(nearClipped, dfc);
   leftClipped = clipSide(leftClipped, -dfc);
   

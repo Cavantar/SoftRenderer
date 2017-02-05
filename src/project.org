@@ -16,3 +16,13 @@
     CLOSED: [2015-07-22 ¶r. 15:22]
 *** TODO Write Lighting With Lamp System - Color Blend.
 *** TODO Write Obj Loader.
+** Tips
+*** Don't get used to the old ways !!!.
+
+I spend waay too much time couting variables instead of using debugger like civilized programmer that I am.
+
+USE DEBUGGER !!!
+
+I would have easily got 2 hours back. But on the other hand i might forget to use debugger next on something that's far more consuming.
+
+
