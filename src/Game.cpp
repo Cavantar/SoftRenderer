@@ -129,7 +129,7 @@ void Game::update(TextureBuffer* screenBuffer, const Input& input, real32 lastDe
     softRenderer.drawCubeInPerspective(screenBuffer, cube, rotAngleX, rotAngleY);
   }
 
-  TextureBuffer::blitTexture(screenBuffer, &testTexture, Vec2i(200, 200));
+  // TextureBuffer::blitTexture(screenBuffer, &testTexture, Vec2i(200, 200));
 
   if(1)
   {
